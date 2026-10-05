@@ -43,3 +43,28 @@ jobs:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
       - run: bundle exec rspec
+
+  examples:
+    name: Example ${{ matrix.app }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [auth, roles]
+    defaults:
+      run:
+        working-directory: examples/${{ matrix.app }}
+    env:
+      RAILS_ENV: test
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
+        with:
+          ruby-version: '4.0'
+          bundler-cache: true
+          working-directory: examples/${{ matrix.app }}
+      - run: bin/rails db:prepare
+      - run: bundle exec rspec

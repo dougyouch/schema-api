@@ -5,6 +5,8 @@ AllCops:
   Exclude:
     - 'vendor/**/*'
     - 'coverage/**/*'
+    - 'examples/*/db/schema.rb'
+    - 'examples/*/vendor/**/*'
 
 Metrics/MethodLength:
   Max: 20
@@ -30,7 +32,12 @@ Metrics/ParameterLists:
 Metrics/BlockLength:
   Exclude:
     - 'spec/**/*'
+    - 'examples/*/spec/**/*'
     - '*.gemspec'
+  # the schema and search DSL blocks list a resource's fields
+  AllowedMethods:
+    - schema
+    - search
 
 Style/Documentation:
   Enabled: false
@@ -42,6 +49,7 @@ Layout/LineLength:
   Max: 130
   Exclude:
     - 'spec/**/*'
+    - 'examples/*/spec/**/*'
 
 Naming/FileName:
   Exclude:

@@ -696,4 +696,8 @@ Settled during design review (2026-10-05):
 
 ## Open Questions
 
-None right now.
+Found while building `examples/auth` and `examples/roles`:
+
+1. **Write-only fields on PUT.** PUT sets input fields that weren't sent to `nil`, which is wrong for secrets: a PUT without `password` would clear it. The auth example works around this with `model: false` and a `before_assign` hook. Should `write_only` fields stay unchanged when not sent, like `belongs_to` keys (`on_put_missing: :keep`), with `:nullify` to opt back in?
+2. **Authorizing by what changed.** "Users may not change their affiliations" is best judged from `context.changes` after the save (raising rolls the write back), so a client can still PUT back its own GET response. Is an `after_save` hook enough, or should the gem offer a declared form, e.g. `input: true, unless: :application?` per field or association?
+3. **Schemas outside resources.** `/authorize` uses a plain schema-model schema with SchemaApi's error format. That needs `include SchemaApi::ResourceSchema` and building the error by hand. Worth a small helper, e.g. `SchemaApi.parse!(SchemaClass, params)`, that raises the right error?
