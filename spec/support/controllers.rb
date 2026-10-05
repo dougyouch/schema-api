@@ -313,12 +313,17 @@ class LeanCarsController < SchemaApplicationController
     model_attribute :created_by_id, set: :acting_user_id, on: :create
     model_attribute :updated_by_id, set: ->(car) { acting_user_id || car.updated_by_id }
     attribute :owner_count, :integer, value: ->(car) { car.owners.size }, includes: :owners
+    belongs_to(:manufacturer, set: :house_brand_id, on: :create) { model_attribute :name }
     timestamps
   end
 
   soft_delete
 
   private
+
+  def house_brand_id
+    Manufacturer.find_or_create_by!(tenant_id: current_tenant.id, name: 'House').id
+  end
 
   def resource_scope
     Car.where(tenant: current_tenant)

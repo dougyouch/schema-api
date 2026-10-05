@@ -48,7 +48,7 @@ RSpec.describe 'lean controller helpers' do
     it 'are filled by the server, ignoring the client, and only when the record changes' do
       lean :post, '/lean_cars', car: { vin: 'V1', make: 'Ford', created_by_id: 99 }, user_id: 5
       car = Car.find(json['car']['id'])
-      expect(json['car']).to include('created_by_id' => 5, 'updated_by_id' => 5)
+      expect(json['car']).to include('created_by_id' => 5, 'updated_by_id' => 5, 'manufacturer' => { 'name' => 'House' })
 
       lean :patch, "/lean_cars/#{car.id}", car: { make: 'Ford' }, user_id: 7
       expect(car.reload.updated_by_id).to eq(5)
@@ -79,9 +79,9 @@ RSpec.describe 'lean controller helpers' do
       create_car.owners.create!(person_id: 1)
       lean :get, '/lean_cars'
 
-      expect(json['cars'].first.keys).to eq(%w[id vin make created_by_id updated_by_id owner_count created_at updated_at])
+      expect(json['cars'].first.keys).to eq(%w[id vin make created_by_id updated_by_id owner_count manufacturer created_at updated_at])
       expect(json['cars'].first['owner_count']).to eq(1)
-      expect(LeanCarsController.schema_api_definition.includes).to eq(owners: {})
+      expect(LeanCarsController.schema_api_definition.includes).to eq(owners: {}, manufacturer: {})
       expect(LeanCarsController.schema_api_definition.schema_class.api_field(:updated_at).lock).to be(true)
     end
 

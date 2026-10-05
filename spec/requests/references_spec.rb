@@ -39,6 +39,14 @@ RSpec.describe 'belongs_to references' do
     expect(car.reload.manufacturer).to be_nil
   end
 
+  it 'ignores the key of an output-only belongs_to' do
+    car = create_car(manufacturer: manufacturer)
+    json_request :patch, "/lean_cars/#{car.id}", car: { manufacturer_id: other_manufacturer.id, make: 'Jeep' }
+
+    expect(last_response.status).to eq(200)
+    expect(car.reload).to have_attributes(make: 'Jeep', manufacturer: manufacturer)
+  end
+
   it 'is a 422 when the key is outside the scope' do
     foreign = Manufacturer.create!(tenant_id: other_tenant.id, name: 'Elsewhere')
     car = create_car

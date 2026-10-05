@@ -119,9 +119,10 @@ module SchemaApi
       options[:write_only] == true
     end
 
-    # @return [Boolean] whether the field is rendered
+    # @return [Boolean] whether the field is rendered; render: false hides a field that isn't
+    #   write-only, e.g. a belongs_to key without render_key:
     def output?
-      !write_only? && !destroy_flag?
+      !write_only? && !destroy_flag? && options[:render] != false
     end
 
     # @return [Boolean, Symbol] true or :required for an optimistic lock field

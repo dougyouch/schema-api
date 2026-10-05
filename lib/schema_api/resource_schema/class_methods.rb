@@ -57,15 +57,17 @@ module SchemaApi
       # @param key [Symbol] unique field on the referenced model
       # @param render_key [Boolean] also render the key
       # @param on_put_missing [Symbol] :keep or :nullify when PUT doesn't send the key
-      # @param options [Hash] has_one options, e.g. model:
+      # @param options [Hash] has_one options, e.g. model:; set: and on: go to the key field, so the
+      #   server can fill the reference (set: returns the key value)
       # @yield attribute declarations for the nested object
       # @return [Class] the nested schema class
       def belongs_to(name, input: false, scope: nil, key: :id, render_key: false, on_put_missing: :keep, **options, &)
         key_field = key.to_sym == :id ? :"#{name}_id" : :"#{name}_#{key}"
+        server = options.extract!(:set, :on)
         reference = { key: key.to_sym, key_field: key_field, scope: scope, input: input,
                       on_put_missing: on_put_missing, render_key: render_key }
         nested = has_one(name, options.merge(belongs_to: true, reference: reference), &)
-        key_options = { input: input, write_only: !render_key, reference_for: name, model: false }
+        key_options = { input: input, render: render_key, reference_for: name, model: false }.merge(server)
         attribute(key_field, PENDING_TYPE, key_options.merge(model_attribute: true, declared_options: key_options))
         nested
       end
