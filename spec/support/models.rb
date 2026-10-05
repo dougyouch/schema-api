@@ -6,8 +6,12 @@ end
 class Manufacturer < ActiveRecord::Base
 end
 
+class Person < ActiveRecord::Base
+end
+
 class Owner < ActiveRecord::Base
   belongs_to :car
+  belongs_to :person, optional: true
   validates :person_id, presence: true
 end
 

@@ -141,6 +141,12 @@ module SchemaApi
       options[:model] || nil
     end
 
+    # @return [Symbol, String, nil] the model column holding the value: the foreign key for a
+    #   belongs_to key field (key: :id), otherwise {#model_name}
+    def column
+      options[:column] || model_name
+    end
+
     # @return [Proc, nil] computes the output value from the record
     def value_proc
       options[:value]

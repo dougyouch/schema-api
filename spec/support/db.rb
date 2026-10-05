@@ -25,6 +25,10 @@ ActiveRecord::Schema.define do
   end
   add_index :cars, %i[tenant_id vin], unique: true
 
+  create_table :people do |t|
+    t.string :name
+  end
+
   create_table :owners do |t|
     t.integer :car_id
     t.integer :person_id

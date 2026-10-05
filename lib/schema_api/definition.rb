@@ -69,6 +69,7 @@ module SchemaApi
         next if @finalized
 
         SchemaFinalizer.new(schema_class, model, path: controller.name).finalize!
+        check_key_fields
         search.finalize!(schema_class, model)
         @includes = IncludesBuilder.new(schema_class).build
         @finalized = true
@@ -89,6 +90,16 @@ module SchemaApi
     # @return [String]
     def collection_root
       naming.collection_root
+    end
+
+    # upsert and bulk keys are looked up by column, so each must name a field stored in one
+    def check_key_fields
+      keys = upsert_keys + (controller.public_method_defined?(:bulk_update) ? [bulk.key] : [])
+      keys.uniq.each do |key|
+        next if schema_class.api_field(key)&.column
+
+        raise DefinitionError, "#{controller.name}: key #{key} isn't a schema field stored in a model column"
+      end
     end
 
     # @return [Hash] the eager-loading tree for the schema's associations

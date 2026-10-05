@@ -10,4 +10,6 @@ TestRoutes.draw do
   schema_api_resources :garage_cars
   schema_api_resources :dealer_cars
   schema_api_resources :strict_cars
+  schema_api_resources :people_cars
+  schema_api_resources :owner_records, upsert: true
 end

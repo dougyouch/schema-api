@@ -35,6 +35,7 @@ module SchemaApi
         type, extra = model && TypeResolver.new(model).resolve(column)
         raise UnknownAttributeError, unknown_attribute_message(field, model, column) unless type
 
+        extra[:column] = column.to_s if field.reference_key? && model == @model
         redeclare(field, type, extra)
       end
     end

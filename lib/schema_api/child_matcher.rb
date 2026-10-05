@@ -35,7 +35,7 @@ module SchemaApi
 
     def existing_key(child)
       @key_fields.map do |field|
-        @reader == :schema ? child.public_send(field.getter) : child.public_send(field.model_name)
+        @reader == :schema ? child.public_send(field.getter) : child.public_send(field.column)
       end
     end
   end

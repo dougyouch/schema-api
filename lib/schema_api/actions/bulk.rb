@@ -63,8 +63,8 @@ module SchemaApi
 
       def preload_bulk_records(mode, inputs)
         case mode
-        when :update then scoped_resources.where(bulk_key_field.model_name => inputs.map { |input| bulk_key(input) }.compact.uniq)
-                                          .index_by { |record| record.public_send(bulk_key_field.model_name) }
+        when :update then scoped_resources.where(bulk_key_field.column => inputs.map { |input| bulk_key(input) }.compact.uniq)
+                                          .index_by { |record| record.public_send(bulk_key_field.column) }
         when :upsert then find_resources_for_upsert(inputs)
         else {}
         end

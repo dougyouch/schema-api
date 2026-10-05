@@ -108,7 +108,7 @@ module SchemaApi
     # @param inputs [Array<Schema::Model>]
     # @return [Hash{Array => ActiveRecord::Base}] upsert key values => record
     def find_resources_for_upsert(inputs)
-      columns = upsert_key_fields.map(&:model_name)
+      columns = upsert_key_fields.map(&:column)
       first_values = inputs.map { |input| upsert_key_values(input).first }.compact.uniq
       records = scoped_resources.where(columns.first => first_values)
       records.index_by { |record| columns.map { |column| record.public_send(column) } }
@@ -125,7 +125,7 @@ module SchemaApi
     end
 
     def upsert_conditions(input)
-      upsert_key_fields.map(&:model_name).zip(upsert_key_values(input)).to_h
+      upsert_key_fields.map(&:column).zip(upsert_key_values(input)).to_h
     end
   end
 end

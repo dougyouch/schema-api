@@ -249,3 +249,47 @@ class StrictCarsController < ApplicationController
     end
   end
 end
+
+class PeopleCarsController < ApplicationController
+  include SchemaApi
+
+  schema(Car, root: :car) do
+    model_attribute :id
+    has_many :owners, input: true, key: :person_id do
+      model_attribute :id
+      model_attribute :since, input: true
+      belongs_to :person, input: true, scope: :all do
+        model_attribute :name
+      end
+    end
+  end
+
+  private
+
+  def resource_scope
+    Car.where(tenant: current_tenant)
+  end
+end
+
+class OwnerRecordsController < ApplicationController
+  include SchemaApi
+
+  schema(Owner, root: :owner) do
+    model_attribute :id
+    model_attribute :since, input: true
+    belongs_to(:car, input: true, scope: -> { Car.where(tenant: current_tenant) }) { model_attribute :vin }
+    belongs_to(:person, input: true, scope: :all) { model_attribute :name }
+  end
+
+  search do
+    filter :person_id
+  end
+
+  upsert_key :car_id, :person_id
+
+  private
+
+  def resource_scope
+    Owner.where(car_id: Car.where(tenant: current_tenant).select(:id))
+  end
+end

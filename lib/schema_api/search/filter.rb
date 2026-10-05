@@ -85,12 +85,12 @@ module SchemaApi
       end
 
       def finalize_column(field, model)
-        unless field&.model_name && field.scalar?
+        unless field&.column && (field.scalar? || field.reference_key?)
           raise UnknownAttributeError, "search filter #{name}: not a model attribute of the schema"
         end
 
         @type ||= field.type
-        @column = field.model_name.to_s
+        @column = field.column.to_s
         @table = model.arel_table
       end
 
