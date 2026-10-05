@@ -1,0 +1,65 @@
+AllCops:
+  TargetRubyVersion: 3.3
+  NewCops: enable
+  SuggestExtensions: false
+  Exclude:
+    - 'vendor/**/*'
+    - 'coverage/**/*'
+
+Metrics/MethodLength:
+  Max: 20
+
+Metrics/AbcSize:
+  Max: 30
+
+Metrics/ClassLength:
+  Max: 200
+
+Metrics/ModuleLength:
+  Max: 200
+
+Metrics/CyclomaticComplexity:
+  Max: 10
+
+Metrics/PerceivedComplexity:
+  Max: 10
+
+Metrics/ParameterLists:
+  CountKeywordArgs: false
+
+Metrics/BlockLength:
+  Exclude:
+    - 'spec/**/*'
+    - '*.gemspec'
+
+Style/Documentation:
+  Enabled: false
+
+Style/FrozenStringLiteralComment:
+  EnforcedStyle: always
+
+Layout/LineLength:
+  Max: 130
+  Exclude:
+    - 'spec/**/*'
+
+Naming/FileName:
+  Exclude:
+    - 'lib/schema-api.rb'
+
+# DSL methods following ActiveRecord conventions (has_one, has_many)
+Naming/PredicatePrefix:
+  Exclude:
+    - 'lib/schema_api/resource_schema/class_methods.rb'
+    - 'lib/schema_api/field.rb'
+
+Style/DocumentDynamicEvalDefinition:
+  Enabled: false
+
+Style/OptionalBooleanParameter:
+  Enabled: false
+
+# op is the search DSL's word for an operator
+Naming/MethodParameterName:
+  AllowedNames:
+    - op
