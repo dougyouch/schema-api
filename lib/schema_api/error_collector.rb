@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 module SchemaApi
-  # Walks a schema tree and collects its parsing or validation errors as details, with
-  # paths that match the request: "email", "address.zip", "items[1].quantity".
+  # Walks a schema tree (any schema-model schema) and collects its parsing or validation
+  # errors as details, with paths that match the request: "email", "address.zip", "items[1].quantity".
   class ErrorCollector
     # Parsing errors at every level. Markers schema-model leaves on a parent for a nested
     # model's errors (e.g. "items:1") are replaced by the nested model's own errors.
@@ -49,7 +49,7 @@ module SchemaApi
     # "items:1" or "profile" with a nested model present: its own errors are reported instead
     def nested_marker?(schema, attribute)
       name, index = attribute.split(':', 2)
-      field = schema.class.api_field(name)
+      field = field_for(schema, name)
       return false unless field&.association?
 
       value = schema.public_send(field.getter)
@@ -62,7 +62,7 @@ module SchemaApi
     end
 
     def each_child(schema, path, writable_only: false, &)
-      schema.class.api_fields.select(&:association?).each do |field|
+      fields_for(schema).select(&:association?).each do |field|
         next if writable_only && field.belongs_to?
 
         value = schema.public_send(field.getter)
@@ -85,7 +85,17 @@ module SchemaApi
     end
 
     def association_field?(schema, attribute)
-      schema.class.api_field(attribute)&.association? || false
+      field_for(schema, attribute)&.association? || false
+    end
+
+    # plain schema-model options, so schemas without SchemaApi::ResourceSchema work too
+    def fields_for(schema)
+      schema.class.schema.each_value.reject { |options| options[:alias_of] }.map { |options| Field.new(options, schema.class) }
+    end
+
+    def field_for(schema, name)
+      options = schema.class.schema[name.to_sym]
+      options && Field.new(options, schema.class)
     end
 
     def error_code(error)

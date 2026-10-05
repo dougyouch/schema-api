@@ -37,6 +37,8 @@ module SchemaApi
   autoload :MappingBuilder, 'schema_api/mapping_builder'
   autoload :ModelErrors, 'schema_api/model_errors'
   autoload :Naming, 'schema_api/naming'
+  autoload :ParentConfig, 'schema_api/parent_config'
+  autoload :ParentLookup, 'schema_api/parent_lookup'
   autoload :PatchMerger, 'schema_api/patch_merger'
   autoload :Persistence, 'schema_api/persistence'
   autoload :Presenter, 'schema_api/presenter'
@@ -45,6 +47,7 @@ module SchemaApi
   autoload :Routing, 'schema_api/routing'
   autoload :SchemaClassBuilder, 'schema_api/schema_class_builder'
   autoload :SchemaFinalizer, 'schema_api/schema_finalizer'
+  autoload :SchemaParser, 'schema_api/schema_parser'
   autoload :Serializer, 'schema_api/serializer'
   autoload :TimeFormatter, 'schema_api/time_formatter'
   autoload :TreeChanges, 'schema_api/tree_changes'
@@ -81,14 +84,21 @@ module SchemaApi
     autoload :Page, 'schema_api/pagination/page'
   end
 
-  # Adds the macros, actions and error handling to a controller.
+  # Adds the macros and error handling to a controller. Actions are added by `schema`, so
+  # SchemaApi can be included once in ApplicationController.
   # @api private
   def self.included(base)
     base.extend ClassMethods
-    base.include Lookup, Rendering, Persistence
-    base.include Actions::Crud, Actions::Search, Actions::Upsert, Actions::Bulk
+    base.include Lookup, ParentLookup, Rendering, Persistence
     base.rescue_from Error, with: :render_error
     base.rescue_from ActiveRecord::RecordNotFound, with: :render_record_not_found
+  end
+
+  # Parses data with a schema-model schema, raising {InvalidData} or {ValidationError} with
+  # SchemaApi's error details. See {SchemaParser}.
+  # @return [Schema::Model]
+  def self.parse!(schema_class, data, context: nil)
+    SchemaParser.new(schema_class).parse!(data, context: context)
   end
 
   # Controllers that declared a schema.

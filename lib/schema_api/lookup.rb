@@ -26,16 +26,22 @@ module SchemaApi
     #     Car.where(tenant: current_tenant)
     #   end
     #
+    # With {ClassMethods#parent}, it's the parent's association.
+    #
     # @return [ActiveRecord::Relation]
     def resource_scope
+      return parent_resource.public_send(parent_association) if schema_api.parent
+
       resource_model.all
     end
 
-    # resource_scope with the schema's eager loading
+    # resource_scope without soft-deleted rows, and with the schema's eager loading
     # @return [ActiveRecord::Relation]
     def scoped_resources
+      scope = resource_scope
+      scope = scope.where(resource_model.table_name => { schema_api.soft_delete => nil }) if schema_api.soft_delete
       includes = schema_api.includes
-      includes.empty? ? resource_scope : resource_scope.includes(includes)
+      includes.empty? ? scope : scope.includes(includes)
     end
 
     # @return [ActiveRecord::Base]

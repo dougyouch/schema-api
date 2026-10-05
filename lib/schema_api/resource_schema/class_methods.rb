@@ -29,6 +29,24 @@ module SchemaApi
         attribute(name, PENDING_TYPE, options.merge(model_attribute: true, declared_options: options))
       end
 
+      # Declares several model attributes with the same options.
+      # @example
+      #   model_attributes :name, :email, input: true
+      # @param names [Array<Symbol>]
+      # @param options [Hash] attribute options
+      # @return [void]
+      def model_attributes(*names, **options)
+        names.each { |name| model_attribute(name, **options) }
+      end
+
+      # Declares created_at and updated_at, with updated_at as the optimistic lock.
+      # @param lock [Boolean, Symbol] updated_at's lock: option; false for none
+      # @return [void]
+      def timestamps(lock: true)
+        model_attribute :created_at
+        lock ? model_attribute(:updated_at, lock: lock) : model_attribute(:updated_at)
+      end
+
       # Declares a referenced (shared) record. It is rendered as a nested object and chosen by
       # key: the client sends `<name>_id` (or `<name>_<key>`), never the nested object.
       #

@@ -32,7 +32,8 @@ module SchemaApi
     end
 
     def render_record_not_found(_exception)
-      render_error(NotFound.new("#{resource_model.model_name.human} not found"))
+      label = self.class.schema_api_definition&.schema_class ? resource_label : 'Record'
+      render_error(NotFound.new("#{label} not found"))
     end
 
     def log_error_response(error)

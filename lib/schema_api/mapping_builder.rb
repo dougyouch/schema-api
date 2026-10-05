@@ -4,7 +4,7 @@ module SchemaApi
   # Compiles a schema class's mappable mappings from its field options:
   #
   # - output: model -> schema, the rendered scalar fields
-  # - input: schema -> model, every writable scalar (create and PUT)
+  # - input: schema -> model, every writable scalar (create and PUT); write-only ones only when sent
   # - patch: schema -> model, only the writable scalars that were sent (PATCH)
   #
   # Create-only fields are mapped `if: :creating`. Associations are handled by {TreeExecutor}.
@@ -48,7 +48,8 @@ module SchemaApi
         fields.each do |field|
           conditions = {}
           conditions[:if] = :creating if field.create_only?
-          conditions[:if_src] = :"#{field.name}_was_set?" if partial
+          # write-only fields (passwords, secrets) keep their value when PUT leaves them out
+          conditions[:if_src] = :"#{field.name}_was_set?" if partial || field.write_only?
           map(field.name, field.model_name, conditions)
         end
       end

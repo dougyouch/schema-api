@@ -293,3 +293,78 @@ class OwnerRecordsController < ApplicationController
     Owner.where(car_id: Car.where(tenant: current_tenant).select(:id))
   end
 end
+
+# includes SchemaApi once; subclasses only declare schemas
+class SchemaApplicationController < ApplicationController
+  include SchemaApi
+
+  private
+
+  def acting_user_id
+    request.headers['X-User-Id']&.to_i
+  end
+end
+
+class LeanCarsController < SchemaApplicationController
+  schema(Car, root: :car, collection_root: :cars) do
+    model_attribute :id
+    model_attributes :vin, :make, input: true
+    model_attribute :pin, write_only: true
+    model_attribute :created_by_id, set: :acting_user_id, on: :create
+    model_attribute :updated_by_id, set: ->(car) { acting_user_id || car.updated_by_id }
+    attribute :owner_count, :integer, value: ->(car) { car.owners.size }, includes: :owners
+    timestamps
+  end
+
+  soft_delete
+
+  private
+
+  def resource_scope
+    Car.where(tenant: current_tenant)
+  end
+end
+
+class CarOwnersController < SchemaApplicationController
+  schema(Owner, root: :owner) do
+    model_attribute :id
+    model_attribute :person_id, input: true
+    model_attribute :since, input: true
+  end
+
+  parent :car, scope: :cars, param: :lean_car_id # nested under lean_cars
+
+  private
+
+  def cars
+    Car.where(tenant: current_tenant)
+  end
+end
+
+class TenantOwnersController < SchemaApplicationController
+  schema(Owner, root: :owner) do
+    model_attribute :id
+  end
+
+  parent :tenant, scope: -> { Tenant.all }
+end
+
+class PingController < SchemaApplicationController
+  PingQuery = Class.new do
+    include Schema::All
+
+    def self.name
+      'PingQuery'
+    end
+
+    attribute :count, :integer
+    validates :count, presence: true
+  end
+
+  def show
+    raise SchemaApi::Forbidden, 'Not today' if params[:deny]
+
+    query = SchemaApi.parse!(PingQuery, request.query_parameters)
+    render json: { pong: query.count }
+  end
+end

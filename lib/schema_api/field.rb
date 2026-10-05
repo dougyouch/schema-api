@@ -147,6 +147,16 @@ module SchemaApi
       options[:column] || model_name
     end
 
+    # @return [Symbol, Proc, nil] controller method or proc the server sets this field from (set:)
+    def server_value
+      options[:set]
+    end
+
+    # @return [Symbol] :create to set only on create, :save to set on every save that changes the record
+    def set_on
+      options[:on] || :save
+    end
+
     # @return [Proc, nil] computes the output value from the record
     def value_proc
       options[:value]
@@ -175,6 +185,11 @@ module SchemaApi
     # @return [Boolean] whether eager loading includes this association
     def includes?
       options[:includes] != false
+    end
+
+    # @return [Symbol, Array, Hash, nil] what a computed (value:) field needs loaded, from includes:
+    def value_includes
+      options[:includes] if value_proc
     end
 
     # @return [Boolean] a plain value copied to and from the model by the mappings

@@ -22,6 +22,7 @@ module SchemaApi
       resolve_model_attributes
       @schema_class.api_fields.select(&:association?).each { |field| finalize_association(field) }
       check_values_of
+      check_server_fields
       @schema_class.api_mappings = MappingBuilder.new(@schema_class).build
       @schema_class.mark_finalized!
       @schema_class
@@ -110,6 +111,15 @@ module SchemaApi
         next if @model&.reflect_on_association(field.values_of[:association])
 
         raise UnknownAttributeError, "#{path(field.name)}: #{@model} has no association #{field.values_of[:association]}"
+      end
+    end
+
+    # a field the server sets can't also be written by the client
+    def check_server_fields
+      @schema_class.api_fields.select(&:server_value).each do |field|
+        next unless field.writable?
+
+        raise DefinitionError, "#{path(field.name)}: set: fields are set by the server; drop input:/write_only:"
       end
     end
 

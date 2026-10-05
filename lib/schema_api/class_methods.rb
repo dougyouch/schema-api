@@ -29,6 +29,7 @@ module SchemaApi
     # @return [Class] the schema class
     def schema(source = nil, **options, &)
       definition = own_schema_api_definition
+      include_schema_api_actions
       schema_class = definition.define_schema(source, options, &)
       define_resource_reader(definition.root)
       private(*(CRUD_ACTIONS - options[:actions])) if options[:actions]
@@ -41,6 +42,7 @@ module SchemaApi
     def search(&)
       search = own_schema_api_definition.search
       search.instance_eval(&)
+      include_schema_api_actions
       public :search
       search
     end
@@ -59,6 +61,7 @@ module SchemaApi
     # @return [void]
     def upsert_key(*fields)
       own_schema_api_definition.upsert_keys = fields.flatten.map(&:to_sym)
+      include_schema_api_actions
       public :upsert
       public :bulk_upsert if public_method_defined?(:bulk_create)
     end
@@ -71,8 +74,34 @@ module SchemaApi
     # @return [void]
     def bulk(max: 100, atomic: false, status: :ok, key: :id)
       own_schema_api_definition.bulk = BulkConfig.new(max: max, atomic: atomic, status: status, key: key)
+      include_schema_api_actions
       public :bulk_create, :bulk_update
       public :bulk_upsert if own_schema_api_definition.upsert_keys.any?
+    end
+
+    # Soft deletes: rows with the column set are hidden from every action, and destroy sets it
+    # (with touch) instead of deleting.
+    # @param column [Symbol]
+    # @return [void]
+    def soft_delete(column = :deleted_at)
+      own_schema_api_definition.soft_delete = column.to_sym
+    end
+
+    # Nests the resource under a parent found from the route:
+    #
+    #   parent :organization, scope: :organizations   # /organizations/:organization_id/members
+    #
+    # resource_scope becomes the parent's has_many for this model (association:, or inferred),
+    # and a private reader named after the parent returns it.
+    # @param name [Symbol]
+    # @param scope [Symbol, Proc] controller method or proc giving the parents the caller may use
+    # @param param [Symbol] route parameter, default "<name>_id"
+    # @param association [Symbol, nil]
+    # @return [void]
+    def parent(name, scope:, param: nil, association: nil)
+      own_schema_api_definition.parent = ParentConfig.new(name.to_sym, scope, (param || :"#{name}_id").to_sym, association)
+      define_method(name) { parent_resource }
+      private name
     end
 
     # Adds input validations that need the controller (current user, tenant, database).
@@ -110,6 +139,13 @@ module SchemaApi
       return @schema_api_definition if @schema_api_definition
 
       @schema_api_definition = schema_api_definition&.copy_for(self) || Definition.new(self)
+    end
+
+    # actions are added here rather than on include, so a base controller can include SchemaApi
+    def include_schema_api_actions
+      return if include?(Actions::Crud)
+
+      include Actions::Crud, Actions::Search, Actions::Upsert, Actions::Bulk
     end
 
     # car => resource, so actions and hooks can say car instead of resource

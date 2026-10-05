@@ -80,7 +80,16 @@ module SchemaApi
 
     # Saves the root and nested records.
     def save_resource!(context)
-      TreeExecutor.new(context.changes).execute(context.plan)
+      TreeExecutor.new(context.changes, ->(field, record) { server_field_value(field.server_value, record) })
+                  .execute(context.plan)
+    end
+
+    # The value of a set: field: a controller method, or a proc run in the controller; either
+    # may take the record.
+    def server_field_value(source, record)
+      callable = source.is_a?(Proc) ? source : method(source)
+      args = callable.arity.zero? ? [] : [record]
+      source.is_a?(Proc) ? instance_exec(*args, &source) : callable.call(*args)
     end
 
     # Bumps the root after any real change in the tree. Called only when something changed.
@@ -97,8 +106,11 @@ module SchemaApi
       end
     end
 
+    # Deletes the record, or with {ClassMethods#soft_delete}, sets its timestamp.
     def destroy_resource!(record)
-      record.destroy!
+      return record.destroy! unless schema_api.soft_delete
+
+      record.touch(schema_api.soft_delete)
     end
 
     def resource_transaction(&)

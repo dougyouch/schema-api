@@ -6,8 +6,10 @@ module SchemaApi
   # records what changed. Runs inside the write's transaction.
   class TreeExecutor
     # @param changes [TreeChanges]
-    def initialize(changes)
+    # @param server_value [#call] (field, record) => value for fields declared with set:
+    def initialize(changes, server_value)
       @changes = changes
+      @server_value = server_value
     end
 
     # @param node [TreeNode] the root node
@@ -35,6 +37,21 @@ module SchemaApi
       mapping.map(node.schema, record)
       node.references.each { |field, target| record.public_send(:"#{field.model_name}=", target) }
       node.json.each { |field, value| record.public_send(:"#{field.model_name}=", value) }
+      assign_server_fields(node, record)
+    end
+
+    # set: fields are filled on create, and (unless on: :create) whenever the record has other
+    # changes, so a write that changes nothing still changes nothing
+    def assign_server_fields(node, record)
+      fields = node.schema.class.api_fields.select(&:server_value)
+      return if fields.empty?
+
+      changed = node.creating? || record.changed?
+      fields.each do |field|
+        next unless node.creating? || (field.set_on == :save && changed)
+
+        record.public_send(:"#{field.column}=", @server_value.call(field, record))
+      end
     end
 
     def save!(record, node)

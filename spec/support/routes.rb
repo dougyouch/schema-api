@@ -12,4 +12,11 @@ TestRoutes.draw do
   schema_api_resources :strict_cars
   schema_api_resources :people_cars
   schema_api_resources :owner_records, upsert: true
+  schema_api_resources :lean_cars do
+    schema_api_resources :owners, controller: 'car_owners'
+  end
+  schema_api_resources :tenants, only: [] do
+    schema_api_resources :owners, controller: 'tenant_owners', only: :index
+  end
+  get 'ping', to: 'ping#show'
 end

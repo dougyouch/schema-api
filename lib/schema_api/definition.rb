@@ -22,6 +22,10 @@ module SchemaApi
     attr_accessor :touch
     # @return [CallbackChain]
     attr_reader :callbacks
+    # @return [Symbol, nil] soft delete timestamp column
+    attr_accessor :soft_delete
+    # @return [ParentConfig, nil]
+    attr_accessor :parent
 
     # @param controller [Class]
     def initialize(controller)

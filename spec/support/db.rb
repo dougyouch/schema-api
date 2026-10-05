@@ -21,6 +21,10 @@ ActiveRecord::Schema.define do
     t.integer :status, default: 0
     t.integer :manufacturer_id
     t.json :options
+    t.string :pin
+    t.integer :created_by_id
+    t.integer :updated_by_id
+    t.datetime :deleted_at
     t.timestamps
   end
   add_index :cars, %i[tenant_id vin], unique: true
