@@ -20,7 +20,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'actionpack', '>= 7.1'
   s.add_dependency 'activerecord', '>= 7.1'
   s.add_dependency 'model-mapper', '>= 0.3'
-  s.add_dependency 'schema-model', '>= 0.11'
+  s.add_dependency 'schema-model', '>= 0.12'
   s.metadata['rubygems_mfa_required'] = 'true'
   s.metadata['source_code_uri'] = 'https://github.com/dougyouch/schema-api'
 end

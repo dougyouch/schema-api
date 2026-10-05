@@ -643,7 +643,7 @@ lib/schema_api/error_schema.rb, error_list.rb, errors.rb
 lib/schema_api/routing.rb               # schema_api_resources
 ```
 
-Dependencies: `schema-model`, `model-mapper` (mappable), `actionpack`, `activerecord`. SchemaApi relies on schema-model changes on its `feat/schema-api-support` branch (not yet released): the `:decimal` type, a `:datetime` alias for `:time`, `_was_set?` predicates for associations, and parsing errors that keep their code as the error type (with `add_message` for custom codes). The Gemfile points at that branch until it ships.
+Dependencies: `schema-model` (0.12+, for the `:decimal` type, the `:datetime` alias, association `_was_set?` and parsing error codes), `model-mapper` (mappable), `actionpack`, `activerecord`.
 
 ## Build Order
 

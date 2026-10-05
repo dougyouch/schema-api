@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 update_model do
-  validates :user, presence: true
-
   # the plain token, only on the instance that issued it
   attr_reader :token
 
