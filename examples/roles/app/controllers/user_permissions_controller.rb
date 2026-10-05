@@ -3,13 +3,8 @@
 # GET /organizations/:organization_id/users/:user_id/permissions: everything a user may do
 # in an organization, through all of their roles. A read-only SchemaApi resource over a query.
 class UserPermissionsController < ApplicationController
-  include SchemaApi
-
   schema(model: 'RolesDB::Permission', root: :permission, collection_root: :permissions, actions: %i[index]) do
-    model_attribute :id
-    model_attribute :name
-    model_attribute :resource
-    model_attribute :action
+    model_attributes :id, :name, :resource, :action
   end
 
   search do

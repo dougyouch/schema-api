@@ -6,18 +6,13 @@
 #   PUT /permissions/bulk_upsert
 #   { "permissions": [{ "resource": "cars", "action": "write", "name": "Edit cars" }, ...] }
 class PermissionsController < ApplicationController
-  include SchemaApi
-
   before_action :require_acting_user!, except: %i[index show]
 
   schema(model: 'RolesDB::Permission') do
     model_attribute :id
-    model_attribute :name, input: true
-    model_attribute :description, input: true
-    model_attribute :resource, input: :create
-    model_attribute :action, input: :create
-    model_attribute :created_at
-    model_attribute :updated_at
+    model_attributes :name, :description, input: true
+    model_attributes :resource, :action, input: :create
+    timestamps lock: false
 
     validates :name, presence: true
     validates :resource, :action, presence: true, format: { with: /\A[a-z][a-z0-9_]*\z/, message: 'must be snake_case' }

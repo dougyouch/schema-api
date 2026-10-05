@@ -3,8 +3,6 @@
 # /organizations/:organization_id/members: the same affiliations as users[].affiliations,
 # seen from the organization. Managers must be members of the same organization.
 class OrganizationMembersController < ApplicationController
-  include SchemaApi
-
   before_action :authenticate!
   before_action :require_application!, except: %i[index show]
 
@@ -12,20 +10,17 @@ class OrganizationMembersController < ApplicationController
     model_attribute :id
 
     belongs_to :user, input: true, scope: :user_scope, render_key: true do
-      model_attribute :name
-      model_attribute :email
+      model_attributes :name, :email
     end
 
     has_one :affiliation_attributes, input: true, model: :affiliation_attribute do
-      model_attribute :department, input: true
-      model_attribute :title, input: true
+      model_attributes :department, :title, input: true
       belongs_to :manager_user, input: true, scope: :manager_scope, render_key: true do
         model_attribute :name
       end
     end
 
-    model_attribute :created_at
-    model_attribute :updated_at, lock: true
+    timestamps
   end
 
   search do
@@ -35,23 +30,16 @@ class OrganizationMembersController < ApplicationController
     sort :created_at, default: 'created_at'
   end
 
+  parent :organization, scope: :organizations
   upsert_key :user_id
   bulk max: 100
 
   private
 
-  def organization
-    @organization ||= organizations.find(params[:organization_id])
-  end
-
   def organizations
     return AuthDB::Organization.active if current_application
 
     AuthDB::Organization.active.where(id: current_user.affiliations.select(:organization_id))
-  end
-
-  def resource_scope
-    organization.affiliations
   end
 
   def user_scope

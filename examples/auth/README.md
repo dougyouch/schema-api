@@ -44,14 +44,17 @@ curl "localhost:3000/organizations/1/members?affiliation_attributes.manager_user
 - **Nested writes** (`UsersController`): `affiliations` are matched by `organization_id`, a `belongs_to` key. Each one's `affiliation_attributes` row (one per affiliation) is updated in place, and `manager_user_id` is a `belongs_to` checked against a scope.
 - **The same tables from two sides**: `OrganizationMembersController` exposes affiliations under an organization. Its manager scope only allows managers who are members of that organization.
 - **Write-only and computed fields**:
-  - `password` is write-only. A `before_assign` hook sets it only when one is sent, so a PUT without a password keeps the current one.
+  - `password` is write-only, so it's written when sent and kept when a PUT leaves it out.
   - The session `token` is a computed field that's only filled in on the create response.
 - **Hooks**:
   - `before_save` authenticates the login and issues the token inside the create transaction, so a wrong password writes nothing and returns `401`.
   - `after_commit` ends a user's other sessions when their password changes.
   - `after_save` rejects affiliation changes from users based on what actually changed, so a user can still PUT back their own GET response.
 - **Custom errors**: `Unauthorized` is a `SchemaApi::Error` subclass, so `401`s come back in the standard format.
-- **Soft deletes**: `destroy_resource!` sets `deleted_at` (deleting a user also ends their sessions), and `resource_scope` hides deleted rows.
+- **Soft deletes**: `soft_delete` hides deleted rows and makes destroy set `deleted_at`. Users extend `destroy_resource!` to also end their sessions.
+- **Server-set references**: organizations record the creating application with `belongs_to :application, set: :current_application_id, on: :create`.
+- **Nested resources**: `parent :organization, scope: :organizations` scopes members to the organization in the route and adds an `organization` reader.
+- **Lean controllers**: `include SchemaApi` is in `ApplicationController`, and the schemas use `model_attributes` and `timestamps`.
 - **Scopes as authorization**: a user's `resource_scope` only contains people in their organizations, so anything else is a `404`.
 - **Imports and locking**:
   - `upsert_key :email` with `bulk_upsert` for user imports; `upsert_key :slug` for organizations.

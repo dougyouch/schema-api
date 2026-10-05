@@ -2,8 +2,6 @@
 
 # Tenants. Only applications create, change or delete them; users read the ones they belong to.
 class OrganizationsController < ApplicationController
-  include SchemaApi
-
   before_action :authenticate!
   before_action :require_application!, except: %i[index show]
 
@@ -11,15 +9,14 @@ class OrganizationsController < ApplicationController
     model_attribute :id
     model_attribute :name, input: true
     model_attribute :slug, input: :create
-    attribute :member_count, :integer, value: ->(organization) { organization.affiliations.size }
+    attribute :member_count, :integer, value: ->(organization) { organization.affiliations.size }, includes: :affiliations
 
-    belongs_to :application do
-      model_attribute :id
-      model_attribute :name
+    # the application that created it, recorded by the server
+    belongs_to :application, set: :current_application_id, on: :create do
+      model_attributes :id, :name
     end
 
-    model_attribute :created_at
-    model_attribute :updated_at, lock: true
+    timestamps
 
     validates :name, presence: true
     validates :slug, presence: true,
@@ -35,27 +32,13 @@ class OrganizationsController < ApplicationController
   paginate %i[cursor offset], count: :optional
   upsert_key :slug
   bulk max: 50
-
-  before_assign :record_creator
+  soft_delete
 
   private
 
   def resource_scope
-    organizations = AuthDB::Organization.active
-    return organizations if current_application
+    return AuthDB::Organization.all if current_application
 
-    organizations.where(id: current_user.affiliations.select(:organization_id))
-  end
-
-  def scoped_resources
-    super.includes(:affiliations)
-  end
-
-  def destroy_resource!(organization)
-    organization.soft_delete!
-  end
-
-  def record_creator(context)
-    context.record.application = current_application if context.creating?
+    AuthDB::Organization.where(id: current_user.affiliations.select(:organization_id))
   end
 end

@@ -4,6 +4,9 @@
 # passes the acting user's id in X-User-Id. Reads are open to callers inside the network;
 # writes record who made them.
 class ApplicationController < ActionController::API
+  # actions come from each controller's schema; errors anywhere render in SchemaApi's format
+  include SchemaApi
+
   private
 
   # @return [Integer, nil]

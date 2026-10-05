@@ -3,21 +3,17 @@
 # Roles and the permissions they grant. permission_ids is written as a plain list of ids
 # (stored as role_permissions rows); permissions renders the full objects.
 class RolesController < ApplicationController
-  include SchemaApi
-
   before_action :require_acting_user!, except: %i[index show]
 
   schema(model: 'RolesDB::Role') do
     model_attribute :id
-    model_attribute :name, input: true
-    model_attribute :description, input: true
+    model_attributes :name, :description, input: true
     attribute :permission_ids, :array, data_type: :integer, input: true,
                                        values_of: { association: :role_permissions, field: :permission_id }
-    attribute :permissions, :array, value: lambda { |role|
+    attribute :permissions, :array, includes: :permissions, value: lambda { |role|
       role.permissions.map { |permission| permission.slice(:id, :name, :resource, :action) }
     }
-    model_attribute :created_at
-    model_attribute :updated_at, lock: true
+    timestamps
 
     validates :name, presence: true, format: { with: /\A[a-z][a-z0-9_]*\z/, message: 'must be snake_case' }
   end
@@ -40,10 +36,6 @@ class RolesController < ApplicationController
   validate_input :check_permissions_exist
 
   private
-
-  def scoped_resources
-    super.includes(:permissions)
-  end
 
   # the role_permissions rows would fail on a missing permission anyway; this names the bad ids
   def check_permissions_exist(context)

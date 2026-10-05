@@ -88,11 +88,14 @@ Requests and responses have the same shape: `{ "car": { ... } }`.
 | *(none)* | read-only: rendered; parsed and type-checked if sent, but never written |
 | `input: true` | written on create, PUT and PATCH |
 | `input: :create` | written on create; on update it must match the stored value |
-| `write_only: true` | written, never rendered (`password`) |
+| `write_only: true` | written, never rendered, and kept when a PUT leaves it out (`password`) |
 | `lock: true` / `lock: :required` | optimistic lock field; a stale value is a `409` |
 | `model: :email_address` / `model: false` | model attribute name, or not mapped at all |
-| `value: ->(record) { ... }` | computed output |
+| `value: ->(record) { ... }` | computed output; `includes:` loads what it needs |
+| `set: :method`, `on: :create` | filled by the server from a controller method or proc (on create, or on every save that changes the record); ignored if a client sends it |
 | `format: :iso8601` | times: `:iso8601`, `:iso8601_usec`, `:unix`, or a proc |
+
+`model_attributes :name, :email, input: true` declares several at once, and `timestamps` declares `created_at` and `updated_at` (with `lock: true`).
 
 `model_attribute :name` types the attribute from the model's column (integer, string, decimal, boolean, time, date, json, enum with an inclusion validation). It's resolved on first use; call `SchemaApi.finalize_all!` in an initializer or a spec to catch mistyped columns early.
 
@@ -119,6 +122,25 @@ schema(UserSchema, model: AuthDB::User, root: :member) do ... end   # subclasses
 Options: `on_remove: :destroy | :delete | :nullify | :error`, `patch: :replace`, `includes: false`, `values_of: { association:, field: }` for a list of values stored as child rows.
 
 A write to any nested record bumps the root (`record.touch`), so the root's lock covers the whole tree. Use `schema(touch: false)`, `touch: :bump_version_number!`, or override `touch_resource(record, changes)`.
+
+## Controller Helpers
+
+```ruby
+class ApplicationController < ActionController::API
+  include SchemaApi   # once: actions come from each controller's schema, errors render in one format
+end
+
+class MembersController < ApplicationController
+  schema(model: 'Membership') do ... end
+
+  parent :organization, scope: :organizations  # /organizations/:organization_id/members
+  soft_delete                                  # hide rows with deleted_at; destroy sets it
+end
+
+query = SchemaApi.parse!(SearchForm, request.query_parameters)  # any schema, SchemaApi errors
+```
+
+`parent` scopes the resource to the parent's has_many and adds a private `organization` reader. `param:` changes the route parameter, and `association:` names the has_many when it can't be inferred.
 
 ## Hooks
 

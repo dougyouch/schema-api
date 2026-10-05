@@ -4,8 +4,6 @@
 # GET /sessions lists the caller's active sessions; /sessions/current is the one in use;
 # DELETE revokes.
 class SessionsController < ApplicationController
-  include SchemaApi
-
   before_action :authenticate_user!, except: :create
 
   schema(model: 'AuthDB::Session', actions: %i[index show create destroy]) do

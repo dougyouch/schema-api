@@ -38,13 +38,13 @@ curl localhost:3001/organizations/1/users/2/permissions
 
 ## What it shows
 
-- **Value lists and computed output** (`RolesController`): `permission_ids` is a plain list of ids stored as `role_permissions` rows (`values_of:`), and `permissions` renders the full objects.
+- **Value lists and computed output** (`RolesController`): `permission_ids` is a plain list of ids stored as `role_permissions` rows (`values_of:`), and `permissions` renders the full objects, with `includes: :permissions` to avoid N+1 queries.
 - **Composite upsert keys**:
   - Permissions match by `[resource, action]`, so a service can re-register its whole catalog with one `bulk_upsert`.
   - User roles match by `[organization_id, user_id, role_id]`.
 - **Custom filters**: `GET /roles?permission=cars:write` finds the roles that grant a permission.
-- **Server-set fields**: `creator_id` and `updated_by_user_id` are read-only in the schema, so a client sending them is ignored. A `before_save` hook fills them from `X-User-Id`.
+- **Server-set fields**: `creator_id` (`set: :acting_user_id, on: :create`) and `updated_by_user_id` (`set: :acting_user_id`) come from `X-User-Id`. A client sending them is ignored, and a write that changes nothing doesn't change `updated_by_user_id`.
 - **Controller validations**: `validate_input` stops users from changing their own roles and names permission ids that don't exist, alongside schema validations in one `422`.
 - **Conflicts**: a role still assigned to users can't be deleted, and the error comes back as a `409` with an `in_use` detail.
 - **Read-only resources over a query**: `UserPermissionsController` is an index-only SchemaApi resource whose `resource_scope` joins through roles.
-- **The error format outside resources**: `/authorize` parses its query with a plain schema-model schema and reports problems in the same error format.
+- **The error format outside resources**: `/authorize` parses its query with `SchemaApi.parse!` and a plain schema-model schema, so problems come back in the same error format.

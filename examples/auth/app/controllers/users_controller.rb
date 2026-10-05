@@ -3,39 +3,31 @@
 # Users and their organization affiliations. Applications create and import users and
 # manage affiliations; a user can read people in their organizations and update themselves.
 class UsersController < ApplicationController
-  include SchemaApi
-
   before_action :authenticate!
   before_action :require_application!, only: %i[create upsert bulk_create bulk_update bulk_upsert]
   before_action :require_self_or_application!, only: %i[update destroy]
 
   schema(model: 'AuthDB::User') do
     model_attribute :id
-    model_attribute :name, input: true
-    model_attribute :email, input: true
-    # model: false: a PUT without a password must keep the current one, so a hook sets it
-    attribute :password, :string, write_only: true, model: false
+    model_attributes :name, :email, input: true
+    attribute :password, :string, write_only: true # kept when a PUT leaves it out
 
     has_many :affiliations, input: true, key: :organization_id do
       model_attribute :id
       belongs_to :organization, input: true, scope: :organization_scope, render_key: true do
-        model_attribute :name
-        model_attribute :slug
+        model_attributes :name, :slug
       end
 
       has_one :affiliation_attributes, input: true, model: :affiliation_attribute do
-        model_attribute :department, input: true
-        model_attribute :title, input: true
+        model_attributes :department, :title, input: true
         belongs_to :manager_user, input: true, scope: :manager_scope do
-          model_attribute :id
-          model_attribute :name
+          model_attributes :id, :name
         end
       end
       model_attribute :created_at
     end
 
-    model_attribute :created_at
-    model_attribute :updated_at, lock: true
+    timestamps
 
     validates :name, presence: true
     validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }
@@ -53,21 +45,20 @@ class UsersController < ApplicationController
   paginate %i[cursor offset], limit: { default: 25, max: 100 }, count: :optional
   upsert_key :email
   bulk max: 100
+  soft_delete
 
   # judged by what the write changed, so a user can PUT back their own GET response
   after_save :only_applications_change_affiliations
-  before_assign :assign_password
   after_commit :end_other_sessions, only: :update, if: ->(context) { context.input.password }
 
   private
 
   # applications see everyone; a user sees themselves and the people in their organizations
   def resource_scope
-    users = AuthDB::User.active
-    return users if current_application
+    return AuthDB::User.all if current_application
 
     shared = AuthDB::Affiliation.where(organization_id: current_user.affiliations.select(:organization_id))
-    users.where(id: shared.select(:user_id)).or(users.where(id: current_user.id))
+    AuthDB::User.where(id: shared.select(:user_id)).or(AuthDB::User.where(id: current_user.id))
   end
 
   def organization_scope
@@ -78,8 +69,10 @@ class UsersController < ApplicationController
     AuthDB::User.active
   end
 
+  # soft delete, and end the user's sessions
   def destroy_resource!(user)
-    user.soft_delete!
+    super
+    user.sessions.active.update_all(revoked_at: Time.current)
   end
 
   def require_self_or_application!
@@ -96,10 +89,6 @@ class UsersController < ApplicationController
     raise SchemaApi::Forbidden.new('Only applications can change affiliations',
                                    details: [{ field: 'affiliations', error: 'forbidden',
                                                message: 'Only applications can change affiliations' }])
-  end
-
-  def assign_password(context)
-    context.record.password = context.input.password if context.input.password
   end
 
   def end_other_sessions(context)

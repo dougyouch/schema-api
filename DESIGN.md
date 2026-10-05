@@ -117,11 +117,12 @@ Passing a schema class subclasses it, so the block can add attributes and valida
 | *(none)* | read-only. Parsed and type-checked when sent, available to hooks, never written to the model. |
 | `input: true` | written on create, update and patch, and rendered |
 | `input: :create` | written on create only; sending a different value on update is a `400 create_only_attribute` |
-| `write_only: true` | written, never rendered (`password`) |
+| `write_only: true` | written, never rendered, kept when a PUT leaves it out (`password`) |
 | `lock: true` | read-only, and used for optimistic locking |
 | `model: :email_address` | model attribute when it differs from the API name |
 | `model: false` | not copied to or from the model (e.g. `password_confirmation`, used in a hook) |
-| `value: ->(record) { ... }` | computed output, compiled to a mappable `custom_map` |
+| `value: ->(record) { ... }` | computed output, compiled to a mappable `custom_map`; `includes:` adds what it needs to eager loading |
+| `set: :method` / `on: :create` | filled by the server from a controller method or proc, on create or on every save that changes the record; not input |
 | `format: :iso8601` | time output format: `:iso8601`, `:iso8601_usec` (default for `lock:`), `:unix`, or a proc |
 | `roles: [:admin]` | *(future)* only those roles can read or write it; `input_roles:`/`output_roles:` to split |
 
@@ -693,11 +694,23 @@ Settled during design review (2026-10-05):
 - PATCH on a has-many only changes the items sent.
 - Optimistic locking is on the root only; any real change in the tree touches the root, and a write with no real change touches nothing.
 - Hooks exist for validation, assign, save, touch and commit; defaults are conventions developers can change.
+- Write-only fields stay unchanged when a PUT leaves them out (2026-10-06, from the auth example).
+
+## Controller Helpers
+
+Added after building the examples, to keep controllers to the API and the rules that are specific to it:
+
+- `model_attributes :a, :b, **options` and `timestamps(lock: true)`.
+- **Write-only fields stay unchanged when PUT leaves them out**, like `belongs_to` keys, so secrets aren't cleared by a PUT that doesn't mention them.
+- `set:` / `on:` on an attribute (or a `belongs_to`, for its key) for values the server owns: creator, updater, owning application.
+- `soft_delete(column = :deleted_at)`: `scoped_resources` hides rows with the column set, and `destroy_resource!` sets it with `touch`.
+- `parent :organization, scope:, param:, association:`: the parent is found from the route within its scope (`404` otherwise), `resource_scope` is its has_many, and a private reader returns it.
+- `includes:` on computed fields.
+- `include SchemaApi` once in a base controller: actions are added by `schema`, and errors raised anywhere in a subclass render in the standard format.
+- `SchemaApi.parse!(schema_class, data)` for endpoints that aren't resources.
 
 ## Open Questions
 
 Found while building `examples/auth` and `examples/roles`:
 
-1. **Write-only fields on PUT.** PUT sets input fields that weren't sent to `nil`, which is wrong for secrets: a PUT without `password` would clear it. The auth example works around this with `model: false` and a `before_assign` hook. Should `write_only` fields stay unchanged when not sent, like `belongs_to` keys (`on_put_missing: :keep`), with `:nullify` to opt back in?
-2. **Authorizing by what changed.** "Users may not change their affiliations" is best judged from `context.changes` after the save (raising rolls the write back), so a client can still PUT back its own GET response. Is an `after_save` hook enough, or should the gem offer a declared form, e.g. `input: true, unless: :application?` per field or association?
-3. **Schemas outside resources.** `/authorize` uses a plain schema-model schema with SchemaApi's error format. That needs `include SchemaApi::ResourceSchema` and building the error by hand. Worth a small helper, e.g. `SchemaApi.parse!(SchemaClass, params)`, that raises the right error?
+1. **Authorizing by what changed.** "Users may not change their affiliations" is best judged from `context.changes` after the save (raising rolls the write back), so a client can still PUT back its own GET response. Is an `after_save` hook enough, or should the gem offer a declared form, e.g. `input: true, unless: :application?` per field or association?

@@ -3,6 +3,9 @@
 # Two kinds of callers: users with a session token (Authorization: Bearer <token>) and
 # other services with an application token (X-Application-Token: app_...).
 class ApplicationController < ActionController::API
+  # actions come from each controller's schema; errors anywhere render in SchemaApi's format
+  include SchemaApi
+
   private
 
   def current_application
@@ -19,6 +22,10 @@ class ApplicationController < ActionController::API
 
   def current_user
     current_session&.user
+  end
+
+  def current_application_id
+    current_application&.id
   end
 
   def authenticate!
