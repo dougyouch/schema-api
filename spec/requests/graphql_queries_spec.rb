@@ -125,7 +125,7 @@ RSpec.describe 'GraphQL queries' do
   it 'leaves out fields for actions the controller does not have' do
     fields = GraphqlController.graphql_schema.query.fields.keys
 
-    expect(fields).to contain_exactly('cars', 'car', 'notes', 'note', 'guarded_notes', 'guarded_note')
+    expect(fields).to contain_exactly('cars', 'car', 'notes', 'note', 'guarded_notes', 'guarded_note', 'users', 'user')
     expect(GraphqlController.graphql_schema.to_definition).to include('owners_person_id: CarOwnersPersonIdFilter')
   end
 

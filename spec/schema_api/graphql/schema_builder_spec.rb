@@ -12,6 +12,11 @@ RSpec.describe SchemaApi::Graphql::SchemaBuilder do
     expect(result['errors'].first['message']).to eq('Query has depth of 4, which exceeds max depth of 3')
   end
 
+  it 'leaves out the Mutation type when no controller can write' do
+    expect(build(NotesController).mutation).to be_nil
+    expect(build(CarsController).mutation.fields.keys).to include('create_car')
+  end
+
   it 'refuses controllers it cannot expose' do
     expect { build }.to raise_error(SchemaApi::DefinitionError, 'graphql_resources: no controllers given')
     expect { build(PingController) }.to raise_error(SchemaApi::DefinitionError, 'PingController has no SchemaApi schema')

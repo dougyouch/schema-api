@@ -1,16 +1,21 @@
 # frozen_string_literal: true
 
 module Resources
-  # Users and their organization affiliations: the User type and the users and user fields.
-  # Applications see everyone; a user sees themselves and the people in their organizations.
+  # Users and their organization affiliations.
+  #
+  # Queries: users, user. Applications see everyone; a user sees themselves and the people in
+  # their organizations.
+  # Mutations: applications create and upsert users and manage affiliations; a user can
+  # update or delete their own account.
   class UsersController < ApplicationController
     before_action :authenticate!
+    before_action :require_application!, only: %i[create upsert]
+    before_action :require_self_or_application!, only: %i[update destroy]
 
-    # input: marks what mutations will accept; queries only read
     schema(model: 'AuthDB::User') do
       model_attribute :id
       model_attributes :name, :email, input: true
-      attribute :password, :string, write_only: true # accepted by mutations, never a field
+      attribute :password, :string, write_only: true # an input field, never an output one
 
       has_many :affiliations, input: true, key: :organization_id do
         model_attribute :id
@@ -28,6 +33,11 @@ module Resources
       end
 
       timestamps
+
+      validates :name, presence: true
+      validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }
+      validates :password, presence: true, on: :create
+      validates :password, length: { minimum: 8 }, allow_nil: true
     end
 
     search do
@@ -38,7 +48,12 @@ module Resources
     end
 
     paginate %i[cursor offset], limit: { default: 25, max: 100 }, count: :optional
+    upsert_key :email
     soft_delete
+
+    # judged by what the write changed, so a user can send back their own affiliations unchanged
+    after_save :only_applications_change_affiliations
+    after_commit :end_other_sessions, only: :update, if: ->(context) { context.input.password }
 
     private
 
@@ -55,6 +70,32 @@ module Resources
 
     def manager_scope
       AuthDB::User.active
+    end
+
+    # soft delete, and end the user's sessions
+    def destroy_resource!(user)
+      super
+      user.sessions.active.update_all(revoked_at: Time.current)
+    end
+
+    def require_self_or_application!
+      return if current_application || resource == current_user
+
+      raise SchemaApi::Forbidden, 'You can only change your own account'
+    end
+
+    # raising here rolls the write back
+    def only_applications_change_affiliations(context)
+      return if current_application
+      return unless context.changes.paths.values.flatten.any? { |path| path.start_with?('affiliations') }
+
+      raise SchemaApi::Forbidden.new('Only applications can change affiliations',
+                                     details: [{ field: 'affiliations', error: 'forbidden',
+                                                 message: 'Only applications can change affiliations' }])
+    end
+
+    def end_other_sessions(context)
+      context.record.sessions.active.where.not(id: current_session&.id).update_all(revoked_at: Time.current)
     end
   end
 end

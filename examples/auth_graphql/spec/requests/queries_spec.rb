@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.describe 'POST /graphql' do
+RSpec.describe 'queries' do
   let!(:acme) { create_organization(name: 'Acme') }
   let!(:globex) { create_organization(name: 'Globex') }
   let!(:ada) { create_user(name: 'Ada') }

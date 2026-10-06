@@ -4,8 +4,8 @@ module SchemaApi
   module Graphql
     # Runs a SchemaApi controller for one GraphQL field, the way Rails would run the matching
     # REST action: a new controller for the request, its callbacks for that action
-    # (before_action authorization, around_action), then its own search, lookup and
-    # resource_json. Anything a controller overrides applies to GraphQL too.
+    # (before_action authorization, around_action), then its own search, lookup, write
+    # pipeline and resource_json. Anything a controller overrides applies to GraphQL too.
     class ControllerRunner
       # @param controller_class [Class] a SchemaApi controller
       # @param request [ActionDispatch::Request] the GraphQL request
@@ -20,7 +20,7 @@ module SchemaApi
       def list(search_params)
         run('index') do |controller|
           page = controller.send(:search_page, search_params)
-          { nodes: page.records.map { |record| controller.send(:resource_json, record) }, meta: page.meta }
+          { nodes: page.records.map { |record| render(controller, record) }, meta: page.meta }
         end
       end
 
@@ -28,10 +28,57 @@ module SchemaApi
       # @param record_id [String]
       # @return [Hash] the rendered resource
       def find(record_id)
-        run('show', id: record_id) { |controller| controller.send(:resource_json, controller.send(:resource)) }
+        run('show', id: record_id) { |controller| render(controller, controller.send(:resource)) }
+      end
+
+      # What create does.
+      # @param data [Hash] the input, as a request body would send it under the root key
+      # @return [Hash] the rendered resource
+      def create(data)
+        run('create') { |controller| render(controller, controller.send(:create_resource!, input(controller, data))) }
+      end
+
+      # What PATCH does: only what's sent changes.
+      # @param record_id [String]
+      # @param data [Hash]
+      # @return [Hash]
+      def update(record_id, data)
+        run('update', id: record_id) do |controller|
+          render(controller, controller.send(:update_resource!, input(controller, data), partial: true))
+        end
+      end
+
+      # What PATCH /upsert does: merges into the record matching the upsert key, or creates it.
+      # @param data [Hash]
+      # @return [Hash]
+      def upsert(data)
+        run('upsert') do |controller|
+          record, _created = controller.send(:upsert_resource!, input(controller, data), partial: true)
+          render(controller, record)
+        end
+      end
+
+      # What destroy does.
+      # @param record_id [String]
+      # @return [Hash] the resource as it was before it was destroyed
+      def destroy(record_id)
+        run('destroy', id: record_id) do |controller|
+          record = controller.send(:resource)
+          rendered = render(controller, record)
+          controller.send(:destroy_resource!, record)
+          rendered
+        end
       end
 
       private
+
+      def input(controller, data)
+        controller.send(:build_input, data)
+      end
+
+      def render(controller, record)
+        controller.send(:resource_json, record)
+      end
 
       # @raise [NotFound] for ActiveRecord::RecordNotFound anywhere in the action, as REST's rescue_from does
       def run(action, params = {})

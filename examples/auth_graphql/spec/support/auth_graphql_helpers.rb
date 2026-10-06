@@ -5,12 +5,11 @@ module AuthGraphqlHelpers
     { 'X-Application-Token' => AuthDB::Application.issue!('billing').last, 'Content-Type' => 'application/json' }
   end
 
-  # a session issued directly, since logging in is a mutation that doesn't exist yet
-  def user_headers(user)
-    session = user.sessions.new
-    session.issue_token!
-    session.save!
-    { 'Authorization' => "Bearer #{session.token}", 'Content-Type' => 'application/json' }
+  # logs in with the create_session mutation
+  def user_headers(user, password: 'secret-password')
+    graphql('mutation($session: SessionInput!) { create_session(session: $session) { token } }',
+            headers: { 'Content-Type' => 'application/json' }, variables: { session: { email: user.email, password: password } })
+    { 'Authorization' => "Bearer #{json.dig('data', 'create_session', 'token')}", 'Content-Type' => 'application/json' }
   end
 
   def create_user(name:, email: "#{name.downcase}@example.com")

@@ -5,9 +5,10 @@ require 'schema_api'
 
 module SchemaApi
   # A GraphQL endpoint generated from SchemaApi controllers. Each controller's schema becomes
-  # an object type, and its index and show become query fields that run through the
-  # controller itself: its before_actions, resource_scope, search, pagination and
-  # resource_json. A field can't return anything the REST endpoint wouldn't.
+  # an object type and an input type; index and show become query fields, and create, update,
+  # upsert and destroy become mutations. Every field runs through the controller itself: its
+  # before_actions, resource_scope, search, write pipeline and resource_json, so GraphQL
+  # can't read or write anything the REST endpoint wouldn't.
   #
   # Optional: add the graphql gem and require 'schema_api/graphql'.
   #
@@ -23,9 +24,12 @@ module SchemaApi
     autoload :ErrorHandler, 'schema_api/graphql/error_handler'
     autoload :Execution, 'schema_api/graphql/execution'
     autoload :FilterTypeBuilder, 'schema_api/graphql/filter_type_builder'
+    autoload :InputTypeBuilder, 'schema_api/graphql/input_type_builder'
+    autoload :MutationFields, 'schema_api/graphql/mutation_fields'
     autoload :PageMetaType, 'schema_api/graphql/page_meta_type'
+    autoload :QueryFields, 'schema_api/graphql/query_fields'
     autoload :RequestParser, 'schema_api/graphql/request_parser'
-    autoload :ResourceFields, 'schema_api/graphql/resource_fields'
+    autoload :Resource, 'schema_api/graphql/resource'
     autoload :ScalarTypes, 'schema_api/graphql/scalar_types'
     autoload :SchemaBuilder, 'schema_api/graphql/schema_builder'
     autoload :TypeBuilder, 'schema_api/graphql/type_builder'

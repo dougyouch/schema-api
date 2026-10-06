@@ -2,9 +2,9 @@
 
 require 'schema_api/graphql'
 
-# POST /graphql: the users, organizations and sessions REST endpoints as GraphQL queries.
-# Each field runs its controller's before_actions and resource_scope, so a user token sees
-# the same people and organizations it would over REST.
+# POST /graphql: the users, organizations and sessions REST endpoints as GraphQL queries and
+# mutations. Each field runs its controller's before_actions, resource_scope and write hooks,
+# so a token can read and write only what it could over REST.
 class GraphqlController < ApplicationController
   include SchemaApi::Graphql
 

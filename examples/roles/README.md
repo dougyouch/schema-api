@@ -42,7 +42,7 @@ curl -X POST localhost:3001/graphql -H 'Content-Type: application/json' -d '{"qu
 
 ## What it shows
 
-- **GraphQL** (`GraphqlController`): `POST /graphql` serves roles, permissions and user roles as queries. The fields come from the same schemas and searches, including the custom `permission` filter.
+- **GraphQL** (`GraphqlController`): `POST /graphql` serves roles, permissions and user roles as queries and mutations. They come from the same schemas and searches, including the custom `permission` filter. Mutations still need `X-User-Id`, which sets `creator_id` and `updated_by_user_id`.
 
 - **Value lists and computed output** (`RolesController`): `permission_ids` is a plain list of ids stored as `role_permissions` rows (`values_of:`), and `permissions` renders the full objects, with `includes: :permissions` to avoid N+1 queries.
 - **Composite upsert keys**:

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
-# Demo data and two tokens to try queries with, until mutations can log in and create records.
+# Demo data, an application token (applications are created by rake, not over the API), and a
+# session token for Ada; create_session logs in too.
 #   bin/rails db:seed
 # db:prepare also seeds a new database; specs make their own data.
 return if Rails.env.test? || AuthDB::User.exists?

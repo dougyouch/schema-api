@@ -1,10 +1,13 @@
 # frozen_string_literal: true
 
 module Resources
-  # Tenants: the Organization type and the organizations and organization fields. Users see
-  # the ones they belong to.
+  # Tenants.
+  #
+  # Queries: organizations, organization. Users see the ones they belong to.
+  # Mutations: only applications create, change or delete them.
   class OrganizationsController < ApplicationController
     before_action :authenticate!
+    before_action :require_application!, except: %i[index show]
 
     schema(model: 'AuthDB::Organization') do
       model_attribute :id
@@ -12,11 +15,16 @@ module Resources
       model_attribute :slug, input: :create
       attribute :member_count, :integer, value: ->(organization) { organization.affiliations.size }, includes: :affiliations
 
-      belongs_to :application do
+      # the application that created it, recorded by the server
+      belongs_to :application, set: :current_application_id, on: :create do
         model_attributes :id, :name
       end
 
       timestamps
+
+      validates :name, presence: true
+      validates :slug, presence: true,
+                       format: { with: /\A[a-z0-9]+(?:-[a-z0-9]+)*\z/, message: 'must be lowercase words joined by dashes' }
     end
 
     search do
@@ -26,6 +34,7 @@ module Resources
     end
 
     paginate %i[cursor offset], count: :optional
+    upsert_key :slug
     soft_delete
 
     private

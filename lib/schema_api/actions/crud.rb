@@ -16,21 +16,34 @@ module SchemaApi
 
       # POST /cars
       def create
-        @resource = build_resource
-        write_resource!(@resource, resource_input)
-        render_resource(@resource, status: :created)
+        render_resource(create_resource!(resource_input), status: :created)
       end
 
       # PUT /cars/:id replaces; PATCH /cars/:id changes only what was sent
       def update
-        write_resource!(resource, resource_input, partial: request.patch?)
-        render_resource(resource)
+        render_resource(update_resource!(resource_input, partial: request.patch?))
       end
 
       # DELETE /cars/:id
       def destroy
         destroy_resource!(resource)
         head :no_content
+      end
+
+      private
+
+      # @param input [Schema::Model]
+      # @return [ActiveRecord::Base] the new record, also {#resource}
+      def create_resource!(input)
+        @resource = build_resource
+        write_resource!(@resource, input)
+      end
+
+      # @param input [Schema::Model]
+      # @param partial [Boolean] PATCH semantics
+      # @return [ActiveRecord::Base] {#resource}, written
+      def update_resource!(input, partial:)
+        write_resource!(resource, input, partial: partial)
       end
     end
   end

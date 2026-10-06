@@ -1,3 +1,16 @@
+type Mutation {
+  create_organization(organization: OrganizationInput!): Organization
+  create_session(session: SessionInput!): Session
+  create_user(user: UserInput!): User
+  delete_organization(id: ID!): Organization
+  delete_session(id: ID!): Session
+  delete_user(id: ID!): User
+  update_organization(id: ID!, organization: OrganizationInput!): Organization
+  update_user(id: ID!, user: UserInput!): User
+  upsert_organization(organization: OrganizationInput!): Organization
+  upsert_user(user: UserInput!): User
+}
+
 type Organization {
   application: OrganizationApplication
   created_at: String
@@ -16,6 +29,20 @@ type OrganizationApplication {
 input OrganizationFilter {
   name: OrganizationNameFilter
   slug: OrganizationSlugFilter
+}
+
+input OrganizationInput {
+  name: String
+
+  """
+  Set on create only; sending a different value later is a create_only_attribute error
+  """
+  slug: String
+
+  """
+  The value last read; the write fails with stale_resource if it has changed since
+  """
+  updated_at: String
 }
 
 type OrganizationList {
@@ -55,8 +82,14 @@ type Session {
   expires_at: String
   id: Int
   ip_address: String
+  token: String
   user: SessionUser
   user_agent: String
+}
+
+input SessionInput {
+  email: String
+  password: String
 }
 
 type SessionList {
@@ -93,9 +126,24 @@ type UserAffiliationAffiliationAttribute {
   title: String
 }
 
+input UserAffiliationAffiliationAttributeInput {
+  department: String
+  manager_user_id: Int
+  title: String
+}
+
 type UserAffiliationAffiliationAttributeManagerUser {
   id: Int
   name: String
+}
+
+input UserAffiliationInput {
+  """
+  true removes this item
+  """
+  _destroy: Boolean
+  affiliation_attributes: UserAffiliationAffiliationAttributeInput
+  organization_id: Int
 }
 
 type UserAffiliationOrganization {
@@ -115,6 +163,18 @@ input UserFilter {
   affiliations_organization_id: UserAffiliationsOrganizationIdFilter
   email: UserEmailFilter
   name: UserNameFilter
+}
+
+input UserInput {
+  affiliations: [UserAffiliationInput!]
+  email: String
+  name: String
+  password: String
+
+  """
+  The value last read; the write fails with stale_resource if it has changed since
+  """
+  updated_at: String
 }
 
 type UserList {

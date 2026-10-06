@@ -50,6 +50,16 @@ RSpec.describe 'GraphQL' do
     expect(data['roles']['nodes']).to eq([{ 'name' => 'editor' }])
   end
 
+  it 'grants a role with X-User-Id recorded as the creator, and needs it to write' do
+    mutation = "mutation { create_user_role(user_role: { organization_id: 5, user_id: 9, role_id: #{editor.id} }) " \
+               '{ user_id role { name } creator_id } }'
+    graphql(mutation)
+    expect(json['errors'].first['message']).to eq('X-User-Id is required to make changes')
+
+    post '/graphql', headers: headers, params: body(query: mutation)
+    expect(data['create_user_role']).to eq('user_id' => 9, 'role' => { 'name' => 'editor' }, 'creator_id' => RolesHelpers::ADMIN_ID)
+  end
+
   it 'finds one record, and reports one that is missing' do
     graphql('query($id: ID!) { role(id: $id) { name } permission(id: 0) { name } }', { id: viewer.id })
 

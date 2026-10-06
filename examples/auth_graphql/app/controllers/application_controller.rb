@@ -24,11 +24,19 @@ class ApplicationController < ActionController::API
     current_session&.user
   end
 
+  def current_application_id
+    current_application&.id
+  end
+
   def authenticate!
     raise Unauthorized, 'A session or application token is required' unless current_user || current_application
   end
 
   def authenticate_user!
     raise Unauthorized, 'A session token is required' unless current_user
+  end
+
+  def require_application!
+    raise SchemaApi::Forbidden, 'Only applications can do this' unless current_application
   end
 end

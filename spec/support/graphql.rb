@@ -21,5 +21,5 @@ end
 class GraphqlController < ApplicationController
   include SchemaApi::Graphql
 
-  graphql_resources CarsController, NotesController, GuardedNotesController
+  graphql_resources CarsController, NotesController, GuardedNotesController, UsersController
 end

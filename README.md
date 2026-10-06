@@ -210,7 +210,16 @@ Each controller's schema becomes a type, and its `index` and `show` become query
 }
 ```
 
-Every field runs its controller's `before_action`s, `resource_scope`, search and `resource_json`, so GraphQL returns exactly what REST would: the same scoping, the same field names and formats, and never a write-only field. A `SchemaApi::Error` makes its field `null` and is listed in `errors` with its `code`, `status` and `details` in `extensions`. Queries only for now; mutations are next.
+Writable fields make an input type (`UserInput`), and the write actions become mutations:
+
+```graphql
+mutation {
+  create_user(user: { name: "Ada", email: "ada@example.com", affiliations: [{ tenant_id: 3 }] }) { id }
+  update_user(id: 1, user: { name: "Ada L" }) { name }   # only what's sent changes; null clears
+}
+```
+
+`create_*`, `update_*`, `upsert_*` and `delete_*` exist for the actions a controller has. Every field runs its controller's `before_action`s, `resource_scope`, search or write pipeline (validations, hooks, locks, nested writes) and `resource_json`. So GraphQL reads and writes exactly what REST would: the same scoping and rules, the same field names and formats, and never a write-only field in output. A `SchemaApi::Error` makes its field `null` and is listed in `errors` with its `code`, `status` and `details` in `extensions`. See `examples/auth_graphql` for a service with only a GraphQL endpoint.
 
 ## Errors
 

@@ -45,7 +45,7 @@ curl -X POST localhost:3000/graphql -H "Authorization: Bearer $TOKEN" -H 'Conten
 
 ## What it shows
 
-- **GraphQL** (`GraphqlController`): `POST /graphql` serves users, organizations and sessions as queries. Each field runs its controller's `before_action`s and `resource_scope`, so a user token sees only what it would over REST, and `password` isn't in the schema. Organization members are nested under a route, so they aren't exposed yet.
+- **GraphQL** (`GraphqlController`): `POST /graphql` serves users, organizations and sessions as queries and mutations. Each field runs its controller's `before_action`s, `resource_scope` and write hooks, so a token can read and write only what it could over REST. `password` is on `UserInput` but never on `User`. Organization members are nested under a route, so they aren't exposed yet. [auth_graphql](../auth_graphql) is this service with only the GraphQL endpoint.
 
 - **Nested writes** (`UsersController`): `affiliations` are matched by `organization_id`, a `belongs_to` key. Each one's `affiliation_attributes` row (one per affiliation) is updated in place, and `manager_user_id` is a `belongs_to` checked against a scope.
 - **The same tables from two sides**: `OrganizationMembersController` exposes affiliations under an organization. Its manager scope only allows managers who are members of that organization.
