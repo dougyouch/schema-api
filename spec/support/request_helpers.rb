@@ -24,6 +24,10 @@ module RequestHelpers
     get path, params
   end
 
+  def graphql(query, variables = nil)
+    json_request(:post, '/graphql', { query: query, variables: variables }.compact)
+  end
+
   def json
     JSON.parse(last_response.body)
   end

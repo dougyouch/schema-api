@@ -8,11 +8,12 @@ end
 
 require 'rack/test'
 require 'schema-api'
+require 'schema_api/graphql'
 
 ActiveRecord::Base.establish_connection(adapter: 'sqlite3', database: ':memory:')
 ActiveRecord::Migration.verbose = false
 
-%w[db models controllers routes request_helpers].each { |file| require_relative "support/#{file}" }
+%w[db models controllers graphql routes request_helpers].each { |file| require_relative "support/#{file}" }
 
 RSpec.configure do |config|
   config.include Rack::Test::Methods, type: :request

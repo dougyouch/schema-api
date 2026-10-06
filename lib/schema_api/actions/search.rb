@@ -13,9 +13,16 @@ module SchemaApi
 
       # @param search_params [Hash] filters, sort, limit, cursor, page, count
       def render_search(search_params)
-        query = schema_api.search.parse(search_params, schema_api.pagination)
-        page = paginate_resources(search_resources(query), query)
+        page = search_page(search_params)
         render_resources(page.records, page.meta)
+      end
+
+      # @param search_params [Hash] filters, sort, limit, cursor, page, count
+      # @return [SchemaApi::Pagination::Page]
+      # @raise [InvalidData]
+      def search_page(search_params)
+        query = schema_api.search.parse(search_params, schema_api.pagination)
+        paginate_resources(search_resources(query), query)
       end
 
       # @param query [SchemaApi::Search::Query]

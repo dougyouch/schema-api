@@ -601,6 +601,74 @@ end
 
 Output leaves out attributes the viewer's roles can't read. Input that writes one is a `403 forbidden` naming the field, so clients find out rather than having it silently dropped. Filters and sorts on restricted attributes get the same check, and roles work at every nesting level.
 
+## GraphQL
+
+`SchemaApi::Graphql` serves a controller's schema over GraphQL. It's optional: an app adds the `graphql` gem and `require 'schema_api/graphql'`.
+
+```ruby
+class GraphqlController < ApplicationController
+  include SchemaApi::Graphql
+  graphql_resources UsersController, OrganizationsController, max_depth: 15
+end
+
+post 'graphql', to: 'graphql#execute'
+```
+
+### Why graphql-ruby
+
+graphql-ruby handles the GraphQL language: parsing, the spec's validation rules, variables, fragments, directives, introspection (for GraphiQL and codegen), and depth limits. Building that in-house would add bugs without making the API any better. What's specific to SchemaApi (types from schemas, resolving through controllers) is in-house, and apps never write graphql-ruby type classes. Gems that build types from ActiveRecord columns were left out because they expose whatever the table has.
+
+### Types
+
+- Each controller's schema class becomes an object type named after its root (`User`). Nested schemas are named by path (`UserAffiliation`, `UserAffiliationOrganization`).
+- Fields are the rendered fields, so write-only fields and unrendered belongs_to keys aren't in the schema at all. Asking for one is a validation error.
+- Names stay snake_case, the same as the REST JSON and search params.
+- Values are typed the way the Serializer renders them: decimals, dates and times are `String`, `format: :unix` times are `Int`, and hashes and untyped arrays are `JSON`.
+
+### Query fields
+
+| Action | Field | Returns |
+|---|---|---|
+| `index` | `users(filter:, sort:, limit:, cursor:, page:, count:)` | `UserList { nodes: [User!]!, meta: PageMeta! }` |
+| `show` | `user(id: ID!)` | `User` |
+
+Each field is only there when the controller has that action. Pagination arguments come from `paginate`, so `cursor` only exists for cursor pagination. `PageMeta` matches REST's `meta`.
+
+`filter` is generated from `search`. Each filter is an input object with one field per operator, and dots in nested names become underscores:
+
+```graphql
+cars(filter: { year: { gte: 2010 }, status: { in: ["active"] }, owners_person_id: { eq: 5 } })
+```
+
+The argument is turned back into the search params REST takes, `{ "year" => { "gte" => 2010 }, ... }`, so `Search::ParamsParser` checks it. Limits, sorts and cursors are validated exactly as on `index`.
+
+### Resolving through the controller
+
+`Graphql::ControllerRunner` runs each field the way Rails runs the REST action:
+
+1. Build the controller for the request, with `action_name` (`index` or `show`) and `params` (`id`).
+2. Run its `process_action` callbacks. `before_action` with `only:`/`except:` applies per field, and `around_action` wraps the work.
+3. Inside the callbacks: `search_page` (the same as `index` without the rendering) or `resource`, then `resource_json` for each record.
+
+The output is therefore the REST output, including any `resource_scope`, `find_resource` or `resource_json` override. Each root field gets its own controller instance, so memoized lookups don't leak between fields.
+
+### Errors
+
+The response follows GraphQL conventions:
+
+- **Status:** a request that ran is a `200`, even when a field failed.
+- **Failed fields:** a `SchemaApi::Error` makes its field `null`, and its siblings still resolve. The error goes in `errors`, and `extensions` carries SchemaApi's `code`, `status` and `details`.
+- **Not found:** `ActiveRecord::RecordNotFound` becomes `not_found` ("User not found"), as `rescue_from` does in REST.
+- **Halted callbacks:** a `before_action` that renders instead of raising stops the field with a `forbidden` naming the status it set.
+- **Bad request bodies:** a body that isn't a GraphQL request (bad JSON, no `query`) is a REST-style `400 malformed_request`.
+
+### Not yet
+
+- Mutations. Create and update input types would come from `input?(creating)`, and every mutation would go through `write_resource!`. GraphQL already tells an omitted argument apart from `null`, which is what PATCH needs.
+- Nested-route controllers (`parent`). `graphql_resources` raises for them for now.
+- Using lookahead (the fields a query selected) to skip eager loading and computed fields nobody asked for.
+- `Int` is 32-bit in GraphQL, so integer ids over 2^31 need a wider type.
+
 ## Library Layout
 
 One class per file. The entry point autoloads everything else.
@@ -642,13 +710,15 @@ lib/schema_api/search/                  # definition, filter, sort, params_parse
 lib/schema_api/pagination/              # config, cursor, offset, page
 lib/schema_api/error_schema.rb, error_list.rb, errors.rb
 lib/schema_api/routing.rb               # schema_api_resources
+lib/schema_api/graphql.rb               # optional GraphQL endpoint concern; graphql/ has the
+                                        #   schema, type and filter builders and ControllerRunner
 ```
 
 Dependencies: `schema-model` (0.12+, for the `:decimal` type, the `:datetime` alias, association `_was_set?` and parsing error codes), `model-mapper` (mappable), `actionpack`, `activerecord`.
 
 ## Build Order
 
-Steps 1 to 6 are built and tested; roles are next.
+Steps 1 to 6 and GraphQL queries are built and tested. Roles and GraphQL mutations are next.
 
 1. Naming, `ResourceSchema` (flat attributes, `model_attribute`, finalize), mappings, rendering, `show`.
 2. Input parsing, the write pipeline, errors: `create`, `update` (PUT and PATCH), `destroy`.
@@ -657,6 +727,7 @@ Steps 1 to 6 are built and tested; roles are next.
 5. Search and both pagination modes.
 6. Upsert, then bulk actions.
 7. Roles.
+8. GraphQL: queries (built), then mutations.
 
 ## Defaults and How to Change Them
 
