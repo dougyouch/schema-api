@@ -37,9 +37,15 @@ curl -X POST localhost:3000/users -H "X-Application-Token: $APP" -H 'Content-Typ
 
 # the same affiliations from the organization's side; a manager's reports
 curl "localhost:3000/organizations/1/members?affiliation_attributes.manager_user_id=7" -H "X-Application-Token: $APP"
+
+# GraphQL: people and organizations in one request, scoped to the caller as over REST
+curl -X POST localhost:3000/graphql -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' -d '{"query":
+  "{ users(sort: \"name\") { nodes { name affiliations { organization { name } } } } organizations { nodes { name member_count } } }"}'
 ```
 
 ## What it shows
+
+- **GraphQL** (`GraphqlController`): `POST /graphql` serves users, organizations and sessions as queries and mutations. Each field runs its controller's `before_action`s, `resource_scope` and write hooks, so a token can read and write only what it could over REST. `password` is on `UserInput` but never on `User`. Organization members are nested under a route, so they aren't exposed yet. [auth_graphql](../auth_graphql) is this service with only the GraphQL endpoint.
 
 - **Nested writes** (`UsersController`): `affiliations` are matched by `organization_id`, a `belongs_to` key. Each one's `affiliation_attributes` row (one per affiliation) is updated in place, and `manager_user_id` is a `belongs_to` checked against a scope.
 - **The same tables from two sides**: `OrganizationMembersController` exposes affiliations under an organization. Its manager scope only allows managers who are members of that organization.

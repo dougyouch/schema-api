@@ -94,7 +94,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [auth, roles]
+        app: [auth, auth_graphql, roles]
     defaults:
       run:
         working-directory: examples/${{ matrix.app }}

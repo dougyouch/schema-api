@@ -182,6 +182,45 @@ paginate %i[cursor offset], count: :optional                 # client picks; ?co
 
 `schema_api_resources :cars, search: true` adds `POST /cars/search`, which takes the same parameters as a JSON body under `search`.
 
+## GraphQL
+
+The same controllers can back a GraphQL endpoint. Add the `graphql` gem (it's optional) and one controller:
+
+```ruby
+require 'schema_api/graphql'
+
+class GraphqlController < ApplicationController
+  include SchemaApi::Graphql
+  graphql_resources UsersController, OrganizationsController
+end
+
+# config/routes.rb
+post 'graphql', to: 'graphql#execute'
+```
+
+Each controller's schema becomes a type, and its `index` and `show` become query fields:
+
+```graphql
+{
+  users(filter: { name: { contains: "Ad" } }, sort: "-name", limit: 10) {
+    nodes { id name affiliations { organization { name } } }
+    meta { next_cursor }
+  }
+  user(id: 1) { name }
+}
+```
+
+Writable fields make an input type (`UserInput`), and the write actions become mutations:
+
+```graphql
+mutation {
+  create_user(user: { name: "Ada", email: "ada@example.com", affiliations: [{ tenant_id: 3 }] }) { id }
+  update_user(id: 1, user: { name: "Ada L" }) { name }   # only what's sent changes; null clears
+}
+```
+
+`create_*`, `update_*`, `upsert_*` and `delete_*` exist for the actions a controller has. Every field runs its controller's `before_action`s, `resource_scope`, search or write pipeline (validations, hooks, locks, nested writes) and `resource_json`. So GraphQL reads and writes exactly what REST would: the same scoping and rules, the same field names and formats, and never a write-only field in output. A `SchemaApi::Error` makes its field `null` and is listed in `errors` with its `code`, `status` and `details` in `extensions`. See `examples/auth_graphql` for a service with only a GraphQL endpoint.
+
 ## Errors
 
 Every error has one shape:

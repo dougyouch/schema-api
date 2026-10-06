@@ -9,6 +9,7 @@ group :development do
 end
 
 group :spec do
+  gem 'graphql', '>= 2.3'
   gem 'rack-test'
   gem 'rspec'
   gem 'simplecov'

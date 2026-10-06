@@ -19,4 +19,5 @@ TestRoutes.draw do
     schema_api_resources :owners, controller: 'tenant_owners', only: :index
   end
   get 'ping', to: 'ping#show'
+  post 'graphql', to: 'graphql#execute'
 end

@@ -1,0 +1,187 @@
+type Mutation {
+  create_organization(organization: OrganizationInput!): Organization
+  create_session(session: SessionInput!): Session
+  create_user(user: UserInput!): User
+  delete_organization(id: ID!): Organization
+  delete_session(id: ID!): Session
+  delete_user(id: ID!): User
+  update_organization(id: ID!, organization: OrganizationInput!): Organization
+  update_user(id: ID!, user: UserInput!): User
+  upsert_organization(organization: OrganizationInput!): Organization
+  upsert_user(user: UserInput!): User
+}
+
+type Organization {
+  application: OrganizationApplication
+  created_at: String
+  id: Int
+  member_count: Int
+  name: String
+  slug: String
+  updated_at: String
+}
+
+type OrganizationApplication {
+  id: Int
+  name: String
+}
+
+input OrganizationFilter {
+  name: OrganizationNameFilter
+  slug: OrganizationSlugFilter
+}
+
+input OrganizationInput {
+  name: String
+
+  """
+  Set on create only; sending a different value later is a create_only_attribute error
+  """
+  slug: String
+
+  """
+  The value last read; the write fails with stale_resource if it has changed since
+  """
+  updated_at: String
+}
+
+type OrganizationList {
+  meta: PageMeta!
+  nodes: [Organization!]!
+}
+
+input OrganizationNameFilter {
+  contains: String
+}
+
+input OrganizationSlugFilter {
+  eq: String
+  in: [String!]
+}
+
+type PageMeta {
+  limit: Int!
+  next_cursor: String
+  next_page: Int
+  page: Int
+  total_count: Int
+  total_pages: Int
+}
+
+type Query {
+  organization(id: ID!): Organization
+  organizations(count: Boolean, cursor: String, filter: OrganizationFilter, limit: Int, page: Int, sort: String): OrganizationList
+  session(id: ID!): Session
+  sessions(limit: Int, page: Int, sort: String): SessionList
+  user(id: ID!): User
+  users(count: Boolean, cursor: String, filter: UserFilter, limit: Int, page: Int, sort: String): UserList
+}
+
+type Session {
+  created_at: String
+  expires_at: String
+  id: Int
+  ip_address: String
+  token: String
+  user: SessionUser
+  user_agent: String
+}
+
+input SessionInput {
+  email: String
+  password: String
+}
+
+type SessionList {
+  meta: PageMeta!
+  nodes: [Session!]!
+}
+
+type SessionUser {
+  email: String
+  id: Int
+  name: String
+}
+
+type User {
+  affiliations: [UserAffiliation!]
+  created_at: String
+  email: String
+  id: Int
+  name: String
+  updated_at: String
+}
+
+type UserAffiliation {
+  affiliation_attributes: UserAffiliationAffiliationAttribute
+  created_at: String
+  id: Int
+  organization: UserAffiliationOrganization
+  organization_id: Int
+}
+
+type UserAffiliationAffiliationAttribute {
+  department: String
+  manager_user: UserAffiliationAffiliationAttributeManagerUser
+  title: String
+}
+
+input UserAffiliationAffiliationAttributeInput {
+  department: String
+  manager_user_id: Int
+  title: String
+}
+
+type UserAffiliationAffiliationAttributeManagerUser {
+  id: Int
+  name: String
+}
+
+input UserAffiliationInput {
+  """
+  true removes this item
+  """
+  _destroy: Boolean
+  affiliation_attributes: UserAffiliationAffiliationAttributeInput
+  organization_id: Int
+}
+
+type UserAffiliationOrganization {
+  name: String
+  slug: String
+}
+
+input UserAffiliationsOrganizationIdFilter {
+  eq: Int
+}
+
+input UserEmailFilter {
+  eq: String
+}
+
+input UserFilter {
+  affiliations_organization_id: UserAffiliationsOrganizationIdFilter
+  email: UserEmailFilter
+  name: UserNameFilter
+}
+
+input UserInput {
+  affiliations: [UserAffiliationInput!]
+  email: String
+  name: String
+  password: String
+
+  """
+  The value last read; the write fails with stale_resource if it has changed since
+  """
+  updated_at: String
+}
+
+type UserList {
+  meta: PageMeta!
+  nodes: [User!]!
+}
+
+input UserNameFilter {
+  contains: String
+}
