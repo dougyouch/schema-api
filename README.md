@@ -2,6 +2,10 @@
 
 Rails controllers whose API is a typed schema declared at the top of the file.
 
+[![CI](https://github.com/dougyouch/schema-api/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/dougyouch/schema-api/actions/workflows/ci.yml)
+[![Coverage](https://raw.githubusercontent.com/dougyouch/schema-api/badges/coverage.svg)](https://github.com/dougyouch/schema-api/actions/workflows/ci.yml)
+[![Branch Coverage](https://raw.githubusercontent.com/dougyouch/schema-api/badges/branches.svg)](https://github.com/dougyouch/schema-api/actions/workflows/ci.yml)
+
 The schema is the allowlist for input, parses and type-checks every request, runs your validations, and is the only thing rendered. Records are never serialized directly, so a new column never leaks into a response. Standard create, update, patch, upsert, bulk and search actions, nested resources, optimistic locking and one error format come with it.
 
 Built on [schema-model](https://github.com/dougyouch/schema) for parsing and validation and [model-mapper](https://github.com/dougyouch/mappable) for copying between schemas and models. [DESIGN.md](DESIGN.md) covers the reasoning behind each behavior.
