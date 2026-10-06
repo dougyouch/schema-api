@@ -1,0 +1,3 @@
+/storage/*.sqlite3*
+/log/
+/tmp/
