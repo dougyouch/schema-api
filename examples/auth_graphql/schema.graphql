@@ -1,0 +1,127 @@
+type Organization {
+  application: OrganizationApplication
+  created_at: String
+  id: Int
+  member_count: Int
+  name: String
+  slug: String
+  updated_at: String
+}
+
+type OrganizationApplication {
+  id: Int
+  name: String
+}
+
+input OrganizationFilter {
+  name: OrganizationNameFilter
+  slug: OrganizationSlugFilter
+}
+
+type OrganizationList {
+  meta: PageMeta!
+  nodes: [Organization!]!
+}
+
+input OrganizationNameFilter {
+  contains: String
+}
+
+input OrganizationSlugFilter {
+  eq: String
+  in: [String!]
+}
+
+type PageMeta {
+  limit: Int!
+  next_cursor: String
+  next_page: Int
+  page: Int
+  total_count: Int
+  total_pages: Int
+}
+
+type Query {
+  organization(id: ID!): Organization
+  organizations(count: Boolean, cursor: String, filter: OrganizationFilter, limit: Int, page: Int, sort: String): OrganizationList
+  session(id: ID!): Session
+  sessions(limit: Int, page: Int, sort: String): SessionList
+  user(id: ID!): User
+  users(count: Boolean, cursor: String, filter: UserFilter, limit: Int, page: Int, sort: String): UserList
+}
+
+type Session {
+  created_at: String
+  expires_at: String
+  id: Int
+  ip_address: String
+  user: SessionUser
+  user_agent: String
+}
+
+type SessionList {
+  meta: PageMeta!
+  nodes: [Session!]!
+}
+
+type SessionUser {
+  email: String
+  id: Int
+  name: String
+}
+
+type User {
+  affiliations: [UserAffiliation!]
+  created_at: String
+  email: String
+  id: Int
+  name: String
+  updated_at: String
+}
+
+type UserAffiliation {
+  affiliation_attributes: UserAffiliationAffiliationAttribute
+  created_at: String
+  id: Int
+  organization: UserAffiliationOrganization
+  organization_id: Int
+}
+
+type UserAffiliationAffiliationAttribute {
+  department: String
+  manager_user: UserAffiliationAffiliationAttributeManagerUser
+  title: String
+}
+
+type UserAffiliationAffiliationAttributeManagerUser {
+  id: Int
+  name: String
+}
+
+type UserAffiliationOrganization {
+  name: String
+  slug: String
+}
+
+input UserAffiliationsOrganizationIdFilter {
+  eq: Int
+}
+
+input UserEmailFilter {
+  eq: String
+}
+
+input UserFilter {
+  affiliations_organization_id: UserAffiliationsOrganizationIdFilter
+  email: UserEmailFilter
+  name: UserNameFilter
+}
+
+type UserList {
+  meta: PageMeta!
+  nodes: [User!]!
+}
+
+input UserNameFilter {
+  contains: String
+}
