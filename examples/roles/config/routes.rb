@@ -10,4 +10,5 @@ Rails.application.routes.draw do
     end
   end
   get 'authorize', to: 'authorizations#show'
+  post 'graphql', to: 'graphql#execute'
 end
