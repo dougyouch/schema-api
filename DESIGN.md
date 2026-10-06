@@ -693,6 +693,9 @@ The response follows GraphQL conventions:
 - Nested-route controllers (`parent`). `graphql_resources` raises for them for now.
 - Using lookahead (the fields a query selected) to skip eager loading and computed fields nobody asked for.
 - `Int` is 32-bit in GraphQL, so integer ids over 2^31 need a wider type.
+- Shorter type names. Nested types are named by their path (`UserAffiliationAffiliationAttributeManagerUser`). A `graphql_name:` option on associations, or reusing one type for nested schemas with the same shape, would tidy `schema.graphql`.
+- A resource that isn't a controller. In a GraphQL-only app (`examples/auth_graphql`) the resources are controllers with no routes, because callbacks and `resource_scope` live on controllers. A `SchemaApi::Resource` base class could give them a better name.
+- A `before_action` that renders instead of raising stops its field with a generic `forbidden`. The status it set is in the message, but the body it rendered is lost.
 
 ## Library Layout
 
